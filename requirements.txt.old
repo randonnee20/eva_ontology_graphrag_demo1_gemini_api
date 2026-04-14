@@ -1,0 +1,49 @@
+# =====================================================
+# eva_ontology_graphrag_demo1
+# Python 3.12 + Conda (eva_graphrag 환경)
+# =====================================================
+
+# Core
+streamlit>=1.32.0
+pyyaml>=6.0
+
+# ─────────────────────────────────────────────────────
+# LLM - GGUF 모델용 (llama-cpp-python)
+# ⚠️  아래 CPU 버전은 직접 설치하지 말 것
+#     반드시 CUDA 빌드 wheel을 사용해야 GPU 동작
+#
+# [설치 방법 - eva_graphrag conda 환경에서]
+#
+# 1. CUDA 12.6 Toolkit 설치 (최초 1회)
+#    https://developer.nvidia.com/cuda-12-6-0-download-archive
+#
+# 2. 서드파티 CUDA 12.8 wheel 설치 (cp312, RTX 4070 호환)
+#    pip install https://huggingface.co/boneylizardwizard/llama_cpp_python-0.3.16-cp312-cp312-win_amd64/resolve/main/llama_cpp_python-0.3.16-cp312-cp312-win_amd64.whl
+#
+# 3. CUDA PATH 환경변수 등록 (시스템 환경변수)
+#    C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin
+# ─────────────────────────────────────────────────────
+# llama-cpp-python  ← pip install 시 자동 설치 제외 (위 방법으로 수동 설치)
+
+# Vector DB
+faiss-cpu>=1.7.4
+sentence-transformers>=2.6.0
+
+# Graph
+networkx>=3.2
+neo4j>=5.18.0          # Neo4j 백엔드 사용 시
+
+# Document parsing
+python-docx>=1.1.0
+pypdf>=4.1.0
+
+# HWP 파싱 (LibreOffice 없을 때 fallback)
+olefile>=0.47
+
+# ML - GPU 버전으로 설치할 것
+# pip install torch --index-url https://download.pytorch.org/whl/cu126
+torch>=2.2.0
+numpy>=1.26.0
+
+# Utils
+tqdm>=4.66.0

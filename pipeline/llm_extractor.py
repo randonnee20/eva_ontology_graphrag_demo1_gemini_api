@@ -1,0 +1,147 @@
+"""
+pipeline/llm_extractor.py
+2단계 분리 추출 방식 - 3B 소형 모델 최적화
+1단계: 엔티티 이름 목록만 추출 (단순)
+2단계: 엔티티 간 관계만 추출 (단순)
+"""
+
+import json
+import re
+import logging
+from typing import Dict, List
+
+from rag.llm import generate
+
+logger = logging.getLogger(__name__)
+
+_ALLOWED_RELATIONS = {
+    "CAUSES", "REQUIRES", "PREVENTS", "REGULATED_BY",
+    "RELATED_TO", "PART_OF", "USED_FOR", "DEFINED_IN",
+    "AFFECTS", "PRODUCES", "CONTAINS", "DEPENDS_ON",
+    "DEFINES", "REGULATES", "APPLIES_TO", "INCLUDES",
+    "MANAGED_BY", "ENFORCED_BY", "BELONGS_TO", "OVERSEES",
+}
+
+# 엔티티 타입 키워드 (한국어 텍스트 기준 분류용)
+_TYPE_HINTS = {
+    "Law":          ["법", "법률", "시행령", "시행규칙", "조례", "고시", "규정"],
+    "Organization": ["부", "청", "원", "공단", "재단", "협회", "기관", "회사", "사업장"],
+    "Person":       ["관리자", "근로자", "사업주", "대표자", "담당자", "강사"],
+    "Regulation":   ["기준", "규칙", "지침", "매뉴얼", "절차", "요령"],
+    "Concept":      [],  # default
+}
+
+
+def _infer_type(name: str) -> str:
+    for t, keywords in _TYPE_HINTS.items():
+        if any(kw in name for kw in keywords):
+            return t
+    return "Concept"
+
+
+def extract_entities_relations(text: str) -> Dict[str, List]:
+    if not text or len(text.strip()) < 20:
+        return {"entities": [], "relations": []}
+
+    truncated = text[:1200] if len(text) > 1200 else text
+
+    # ── 1단계: 엔티티 이름만 추출 ──────────────────────────
+    entity_names = _extract_entity_names(truncated)
+    if not entity_names:
+        return {"entities": [], "relations": []}
+
+    # 타입 자동 분류
+    entities = [{"type": _infer_type(n), "name": n} for n in entity_names]
+
+    # ── 2단계: 관계 추출 (엔티티가 3개 이상일 때만) ──────────
+    relations = []
+    if len(entity_names) >= 2:
+        relations = _extract_relations(truncated, entity_names)
+
+    logger.info(f"추출 완료: 엔티티 {len(entities)}개, 관계 {len(relations)}개")
+    return {"entities": entities, "relations": relations}
+
+
+def _extract_entity_names(text: str) -> List[str]:
+    """1단계: 텍스트에서 핵심 명사(엔티티 이름)만 추출"""
+    prompt = f"""다음 텍스트에서 핵심 용어(법률명, 기관명, 개념, 사람 역할)를 최대 10개 추출하라.
+한 줄에 하나씩, 번호 없이, 텍스트에 실제로 나오는 표현 그대로 출력하라.
+
+텍스트:
+{text}
+
+핵심 용어:"""
+
+    output = generate(prompt, max_tokens=300, temperature=0.1, mode="extract")
+
+    # 줄 단위로 파싱
+    lines = output.strip().split("\n")
+    names = []
+    for line in lines:
+        # 번호, 기호 제거
+        clean = re.sub(r"^[\d\.\-\*\•\s]+", "", line).strip()
+        # 너무 짧거나 긴 것 제거
+        if 2 <= len(clean) <= 15:  # 15자 초과는 문장 가능성 높음
+            # URL 형식, 숫자만, 영문만 제거
+            if not re.match(r"^[/\d]+$", clean) and not re.match(r"^[a-zA-Z\s/]+$", clean):
+                # 깨진 문자 필터 - 한글이 최소 1자 이상 있어야
+                kor_count = len(re.findall(r"[\uAC00-\uD7A3]", clean))
+                if kor_count >= 1:
+                    names.append(clean)
+        if len(names) >= 10:
+            break
+
+    return names
+
+
+def _extract_relations(text: str, entity_names: List[str]) -> List[Dict]:
+    """2단계: 추출된 엔티티 간 관계만 추출"""
+    if len(entity_names) < 2:
+        return []
+
+    # 최대 6개 엔티티만 사용 (조합 폭발 방지)
+    names = entity_names[:6]
+    names_str = "\n".join(f"- {n}" for n in names)
+    allowed = ", ".join(sorted(_ALLOWED_RELATIONS))
+
+    prompt = f"""다음 엔티티들 간의 관계를 텍스트에서 찾아 출력하라.
+관계가 없으면 빈 줄만 출력하라.
+형식: 엔티티A | 관계 | 엔티티B
+허용 관계: {allowed}
+
+엔티티 목록:
+{names_str}
+
+텍스트:
+{text[:600]}
+
+관계 목록:"""
+
+    output = generate(prompt, max_tokens=300, temperature=0.1, mode="extract")
+
+    relations = []
+    seen = set()
+    for line in output.strip().split("\n"):
+        parts = [p.strip() for p in line.split("|")]
+        if len(parts) != 3:
+            continue
+        src, rel, tgt = parts
+        rel_upper = rel.upper().replace(" ", "_")
+
+        # 유효성 검사
+        if rel_upper not in _ALLOWED_RELATIONS:
+            continue
+        if src not in entity_names or tgt not in entity_names:
+            continue
+        if src == tgt:
+            continue
+
+        # 동일 (source, target) 쌍은 관계 무관하게 1개만 저장 (중복 노이즈 방지)
+        pair_key = (src, tgt)
+        full_key = (src, rel_upper, tgt)
+        if full_key not in seen and pair_key not in seen:
+            seen.add(full_key)
+            seen.add(pair_key)
+            relations.append({"source": src, "relation": rel_upper, "target": tgt})
+
+    return relations

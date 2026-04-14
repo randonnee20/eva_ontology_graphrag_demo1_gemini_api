@@ -1,0 +1,27 @@
+# config.yaml
+# LLM 설정은 환경변수로 관리 (GEMINI_API_KEY, DAILY_LIMIT)
+
+graph:
+  backend: "networkx"
+
+neo4j:
+  uri: "bolt://localhost:7687"
+  user: "neo4j"
+  password: "password"
+
+embedding:
+  model: "jhgan/ko-sbert-nli"
+  chunk_size: 500
+  chunk_overlap: 50
+  top_k: 5
+
+paths:
+  raw:        "data/raw"
+  text:       "data/text"
+  chunks:     "data/chunks"
+  embeddings: "data/embeddings"
+  graph_db:   "data/graph"
+  ontology:   "ontology/classes.yaml"
+
+ingestion:
+  watch_interval: 2
