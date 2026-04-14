@@ -38,7 +38,7 @@ pyvis>=0.3.2
 
 # ML
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.2.0+cpu
+torch==2.10.0+cpu
 numpy>=1.26.0
 
 # Utils
