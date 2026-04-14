@@ -77,7 +77,7 @@ def answer(query: str, conversation_history: list = None) -> str:
     prompt = _build_prompt(query, context, history_text)
 
     try:
-        resp = generate(prompt, mode="chat")
+        resp = generate(prompt, max_tokens=2048, mode="chat")
         return resp if resp and len(resp.strip()) > 3 else "답변 생성에 실패했습니다. 다시 시도해주세요."
     except Exception as e:
         logger.error(f"LLM 오류: {e}")
@@ -89,7 +89,7 @@ def answer_with_sources(query: str) -> dict:
     prompt = _build_prompt(query, detail["combined_context"])
 
     try:
-        resp = generate(prompt, mode="chat")
+        resp = generate(prompt, max_tokens=2048, mode="chat")
     except Exception as e:
         resp = f"오류: {e}"
 

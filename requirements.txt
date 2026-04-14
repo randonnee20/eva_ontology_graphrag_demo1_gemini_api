@@ -1,5 +1,5 @@
 # =====================================================
-# eva_ontology_graphrag_demo1 - Gemini API 버전
+# eva_ontology_graphrag_demo1 - 하이브리드 LLM 버전
 # Python 3.12
 # =====================================================
 
@@ -7,11 +7,18 @@
 streamlit>=1.32.0
 pyyaml>=6.0
 
-# LLM - Gemini API
-google-generativeai>=0.8.0
-
 # 환경변수 로드 (로컬 개발용)
 python-dotenv>=1.0.0
+
+# ──────────────────────────────────────────────────
+# LLM - 로컬 llama-cpp (로컬 PC 전용)
+# Render 배포 시 주석처리 권장 (빌드 시간 과다)
+# 로컬 설치: pip install llama-cpp-python --break-system-packages
+# ──────────────────────────────────────────────────
+# llama-cpp-python>=0.3.0
+
+# LLM - Gemini API (Render fallback)
+google-genai>=1.0.0
 
 # Vector DB
 faiss-cpu>=1.7.4
@@ -25,6 +32,9 @@ neo4j>=5.18.0
 python-docx>=1.1.0
 pypdf>=4.1.0
 olefile>=0.47
+
+# Graph visualization
+pyvis>=0.3.2
 
 # ML
 torch>=2.2.0

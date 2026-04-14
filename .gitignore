@@ -1,25 +1,25 @@
 # 환경변수 - 절대 커밋 금지
 .env
-
+ 
 # Python
 __pycache__/
 *.pyc
 *.pyo
 .Python
 *.py.old
-
+ 
 # 생성 데이터 (재생성 가능) - 선택적으로 제외
 # data/embeddings/    ← Render 배포 시 자동 재생성됨
 # data/graph/         ← 동일
 # data/text/
 # data/chunks/
-
+ 
 # data/raw는 Git에 포함 (Render에서 읽어야 함)
-
+ 
 # IDE
 .vscode/
 .idea/
-
+ 
 # OS
 .DS_Store
 Thumbs.db

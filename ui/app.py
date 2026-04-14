@@ -5,9 +5,16 @@ ui/app.py — GraphRAG Streamlit UI
 탭 3: 시스템 상태 (그래프/벡터/온톨로지)
 """
 
+import os
 import sys
 import logging
 from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
@@ -395,9 +402,12 @@ def tab_status():
     st.write(", ".join(labels) if labels else "데이터 없음")
 
     with st.expander("⚙️ 설정"):
+        from rag.llm import get_usage
+        usage = get_usage()
         st.json({
             "graph_backend": cfg.get("graph", {}).get("backend"),
-            "llm_model": cfg["llm"]["model_path"],
+            "llm": "Gemini API (gemini-2.5-flash)",
+            "api_usage_today": f"{usage['count']} / {usage['limit']}회",
             "embedding_model": cfg["embedding"]["model"],
             "chunk_size": cfg["embedding"].get("chunk_size"),
             "chunk_overlap": cfg["embedding"].get("chunk_overlap"),

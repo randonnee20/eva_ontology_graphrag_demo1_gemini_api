@@ -65,18 +65,40 @@ def _graph_search(query: str) -> str:
     if not g.test_connection():
         return ""
     try:
-        # [수정] 질문을 키워드로 분리해서 각각 검색 (기존: 전체 문자열 매칭)
         keywords = _extract_keywords(query)
         all_nodes = []
         seen_names = set()
 
         for kw in keywords:
+            # 1차: 정확한 키워드 검색
             nodes = g.search_nodes(kw, limit=3)
+            # 2차: 키워드 부분 매칭 (search_nodes가 빈 결과일 때)
+            if not nodes:
+                try:
+                    all_graph_nodes = g.get_all_nodes() if hasattr(g, 'get_all_nodes') else []
+                    nodes = [n for n in all_graph_nodes if kw in n.get("name", "")][:3]
+                except Exception:
+                    pass
             for node in nodes:
                 name = node.get("name", "")
                 if name and name not in seen_names:
                     seen_names.add(name)
                     all_nodes.append(node)
+
+        # 마지막: 2글자 단위 매칭
+        if not all_nodes:
+            try:
+                all_graph_nodes = g.get_all_nodes() if hasattr(g, 'get_all_nodes') else []
+                for node in all_graph_nodes:
+                    name = node.get("name", "")
+                    if name and any(kw[:2] in name for kw in keywords if len(kw) >= 2):
+                        if name not in seen_names:
+                            seen_names.add(name)
+                            all_nodes.append(node)
+                    if len(all_nodes) >= 5:
+                        break
+            except Exception:
+                pass
 
         if not all_nodes:
             return ""
