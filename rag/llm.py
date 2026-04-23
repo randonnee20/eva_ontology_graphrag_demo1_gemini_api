@@ -29,10 +29,9 @@ _configured = False
 _USAGE_FILE = Path("data/usage.json")
 
 _GEMINI_MODELS = [
-    "gemini-2.5-flash",
-    "gemini-flash-latest",
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-001",
+    "gemini-3.1-flash-lite",   # RPD 500 — 가장 넉넉
+    "gemini-2.5-flash-lite",   # RPD 20
+    "gemini-2.5-flash",        # RPD 20
 ]
 
 
