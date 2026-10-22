@@ -23,3 +23,11 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# --- security: secrets / credentials ---
+.env.*
+!.env.example
+secrets.toml
+.streamlit/secrets.toml
+*.pem
+*.key

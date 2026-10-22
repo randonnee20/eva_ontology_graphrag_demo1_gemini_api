@@ -98,7 +98,15 @@ def tab_upload():
             raw_dir = Path(cfg["paths"]["raw"])
 
             for uf in uploaded_files:
-                save_path = raw_dir / uf.name
+                # 경로 조작(../) 방지: 디렉터리 성분 제거 후 raw_dir 내부인지 재확인
+                safe_name = Path(uf.name.replace("\\", "/")).name
+                save_path = (raw_dir / safe_name).resolve()
+                if not safe_name or raw_dir.resolve() not in save_path.parents:
+                    st.error("허용되지 않는 파일 이름입니다.")
+                    continue
+                if uf.size > 20 * 1024 * 1024:
+                    st.error("파일이 너무 큽니다 (최대 20MB).")
+                    continue
                 save_path.write_bytes(uf.getbuffer())
                 st.info(f"💾 저장: {uf.name}")
 
@@ -110,7 +118,7 @@ def tab_upload():
                     _status.text(f"⚙️ {step}...")
 
                 with st.spinner(f"처리 중: {uf.name}"):
-                    result = process_single_file(uf.name, progress_callback=cb)
+                    result = process_single_file(safe_name, progress_callback=cb)
 
                 bar.progress(1.0)
 
